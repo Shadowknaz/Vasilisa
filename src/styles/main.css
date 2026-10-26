@@ -1,0 +1,95 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #141617;
+    cursor: crosshair;
+}
+
+/* Internal low-res PS1 canvas stretched with nearest-neighbor crisp pixels */
+#ps1-canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+/* Debug view of the plan (?debug=layout). Never part of the acceptance render. */
+.plan-panel {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    max-height: calc(100vh - 16px);
+    overflow: auto;
+    padding: 6px 8px 8px;
+    background: rgba(10, 12, 14, 0.9);
+    border: 1px solid #2a2f34;
+    color: #aeb6bd;
+    font: 10px/1.4 monospace;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.plan-title {
+    margin-bottom: 6px;
+    letter-spacing: 2px;
+    color: #d8dfe4;
+}
+
+.plan-canvas {
+    display: block;
+    width: 432px;
+    height: 432px;
+    image-rendering: pixelated;
+}
+
+.plan-report {
+    margin-top: 6px;
+    max-width: 432px;
+    white-space: pre-wrap;
+}
+
+/* Hard-error overlay: the plan is rejected, no geometry is built (TZ §8.1). */
+.layout-error {
+    position: fixed;
+    inset: 0;
+    padding: 24px;
+    overflow: auto;
+    background: rgba(12, 8, 8, 0.94);
+    color: #e0645c;
+    font: 12px/1.45 monospace;
+    white-space: pre-wrap;
+    z-index: 10;
+}
+
+.layout-error > div {
+    margin-bottom: 12px;
+    letter-spacing: 2px;
+    color: #f0a49c;
+}
+
+/* Debug frame meter (?perf): frame times and draw stats, never in the way. */
+.frame-meter {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    padding: 6px 8px;
+    background: rgba(10, 12, 14, 0.86);
+    border: 1px solid #2a2f34;
+    color: #aeb6bd;
+    font: 10px/1.4 monospace;
+    white-space: pre;
+    pointer-events: none;
+    z-index: 9;
+}

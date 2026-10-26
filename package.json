@@ -1,0 +1,30 @@
+{
+    "name": "vasilisa-ps1-diorama",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "description": "Зона Отчуждения — PS1-эстетика 3D диорама (Three.js + TypeScript + Vite)",
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc --noEmit && vite build",
+        "preview": "vite preview",
+        "typecheck": "tsc --noEmit",
+        "plan-check": "tsx scripts/plan-check.ts",
+        "rag-check": "tsx scripts/rag-check.ts",
+        "rag:eval": "tsx scripts/rag-eval.ts",
+        "rag:build": "tsx scripts/rag-cli.ts build",
+        "rag:query": "tsx scripts/rag-cli.ts query",
+        "frame-stats": "node scripts/frame-stats.mjs"
+    },
+    "dependencies": {
+        "three": "0.128.0"
+    },
+    "devDependencies": {
+        "@types/three": "0.128.0",
+        "knip": "^5.30.0",
+        "tsx": "^4.19.0",
+        "typescript": "^5.6.0",
+        "vite": "^5.4.0"
+    }
+}
+

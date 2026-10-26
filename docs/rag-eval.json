@@ -1,0 +1,5 @@
+[
+  { "id": "overview", "query": "Что представляет собой проект?", "mustContain": ["диорама"] },
+  { "id": "controls", "query": "Какими клавишами WASD управлять движением?", "mustContain": ["WASD"] },
+  { "id": "weather", "query": "Что влияет на видимость?", "mustContain": ["туман"] }
+]
