@@ -69,14 +69,6 @@ function buildRug(frame: THREE.Object3D, wireY: number, sag: number): void {
     flap.position.set(centerX + 0.02, top + rug.HEIGHT * 0.09, -LAUNDRY.RUG_LIFT);
     flap.rotation.y = -0.12;
     frame.add(flap);
-
-    const shadow = new THREE.Mesh(
-        new THREE.PlaneGeometry(rug.WIDTH * 0.8, rug.HEIGHT * 0.4),
-        makePS1Material({ color: COLORS.VOID_SOFT }, { vertexSnap: false })
-    );
-    shadow.rotation.x = -Math.PI / 2;
-    shadow.position.set(centerX, 0.03, 0);
-    frame.add(shadow);
 }
 
 function buildLaundryFrame(group: THREE.Group, object: ObjectDescriptor): void {

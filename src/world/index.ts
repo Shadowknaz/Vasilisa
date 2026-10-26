@@ -27,6 +27,7 @@ import type { CollisionWorld } from '../systems/collision.js';
 import type { Layout, Masks } from './layout/createLayout.js';
 import type { MaskGrid } from './layout/maskGrid.js';
 import type { SurfaceField } from './surfaceField.js';
+import { SnowSimulation } from './snow/snowSimulation.js';
 
 export function buildWorld({
     group,
@@ -44,12 +45,15 @@ export function buildWorld({
     grid: MaskGrid;
     surface: SurfaceField;
     debug?: boolean;
-}): { interiors: InteriorInstance[] } {
+}): { interiors: InteriorInstance[]; snowSim: SnowSimulation } {
     // Interior plans are derived from the layout descriptors once, before any
     // geometry: the same objects feed the meshes below and the runtime.
     const interiors = createInteriorInstances(layout);
 
-    buildDioramaBase(group, surface);
+    const { groundMesh } = buildDioramaBase(group, surface);
+    const snowSim = new SnowSimulation(surface, layout);
+    snowSim.attachGroundMesh(groundMesh);
+
     buildRoads(group, { layout, masks, grid });
     buildKhrushchyovkaDistrict(group, collision, layout, interiors);
     buildPlayground(group, collision, layout);
@@ -76,5 +80,5 @@ export function buildWorld({
     buildStreetLamps(group, surface);
 
     if (debug) group.add(createLayoutOverlay(layout));
-    return { interiors };
+    return { interiors, snowSim };
 }

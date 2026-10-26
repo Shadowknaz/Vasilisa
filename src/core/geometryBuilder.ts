@@ -56,6 +56,27 @@ export function createQuadBuilder() {
         order.forEach((index) => pushVertex(corners[index], normal, cornerUvs[index]));
     }
 
+    // Quad with per-vertex normals for smooth rounded surfaces (organic snowdrifts).
+    function addSmoothQuad(corners: Point3[], cornerNormals: Point3[], cornerUvs: UV[]): void {
+        const [a, b, c] = corners;
+        const abx = b[0] - a[0];
+        const aby = b[1] - a[1];
+        const abz = b[2] - a[2];
+        const acx = c[0] - a[0];
+        const acy = c[1] - a[1];
+        const acz = c[2] - a[2];
+        const crossX = aby * acz - abz * acy;
+        const crossY = abz * acx - abx * acz;
+        const crossZ = abx * acy - aby * acx;
+        const refX = cornerNormals[0][0] + cornerNormals[1][0] + cornerNormals[2][0] + cornerNormals[3][0];
+        const refY = cornerNormals[0][1] + cornerNormals[1][1] + cornerNormals[2][1] + cornerNormals[3][1];
+        const refZ = cornerNormals[0][2] + cornerNormals[1][2] + cornerNormals[2][2] + cornerNormals[3][2];
+        const facing = crossX * refX + crossY * refY + crossZ * refZ;
+        const order = facing >= 0 ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2];
+
+        order.forEach((index) => pushVertex(corners[index], cornerNormals[index], cornerUvs[index]));
+    }
+
     // Flat rectangle in the XZ plane, facing up or down.
     function addPlane(rect: PlaneRect, y: number, tile: number, normalY = 1): void {
         const normal = [0, normalY, 0];
@@ -135,7 +156,7 @@ export function createQuadBuilder() {
         return mesh;
     }
 
-    return { addQuad, addPlane, addBox, addVerticalStrip, isEmpty, build, buildMesh };
+    return { addQuad, addSmoothQuad, addPlane, addBox, addVerticalStrip, isEmpty, build, buildMesh };
 }
 
 export type QuadBuilder = ReturnType<typeof createQuadBuilder>;

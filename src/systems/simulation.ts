@@ -69,6 +69,7 @@ export function updateSimulation(dt: number, {
 }: SimulationContext): void {
     viewState.time += dt;
     dust.update(dt);
+    snowTracks.update?.(dt);
 
     const isMechMoving = viewState.mode === 'MECH' && isMovementPressed(inputState.keys);
 
@@ -91,7 +92,8 @@ export function updateSimulation(dt: number, {
             pilotState,
             inputState,
             collision: interior.navigation,
-            boardingLampMat: mech.boardingLampMat
+            boardingLampMat: mech.boardingLampMat,
+            snowTracks
         });
     }
 

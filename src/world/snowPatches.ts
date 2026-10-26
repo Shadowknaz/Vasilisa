@@ -11,20 +11,19 @@ import { snowCapMat, snowSoilMat } from '../core/materials.js';
 import { makePS1Material } from '../core/ps1Material.js';
 import { createSeededRandom } from '../core/random.js';
 import { objectsOfType } from './placement.js';
-import { addRoundedDrift, compose, placeAt, translateY, type RoundedDriftSpec } from './quadTransform.js';
 import type { Layout, CurbSegment } from './layout/createLayout.js';
 import type { SurfaceField } from './surfaceField.js';
 import type { ObjectDescriptor } from './layout/footprints.js';
 import * as THREE from 'three';
 
 const PATCH = {
-    LIFT: 0.012,
+    LIFT: 0.003,
     TILE: 1.6,
     STEM: { WIDTH: 0.032, HEIGHT: 0.28, TILT: 0.35 },
     DRIFT: {
-        DIRTY_RATIO: 0.15,
-        ROADSIDE_DIRTY_RATIO: 0.26,
-        WALL_DIRTY_RATIO: 0.12,
+        DIRTY_RATIO: 0.0,
+        ROADSIDE_DIRTY_RATIO: 0.22,
+        WALL_DIRTY_RATIO: 0.0,
         WIND_YAW: 0.28, // Prevailing winter wind angle (~16 deg)
         YAW_JITTER: 0.22
     }
@@ -70,12 +69,188 @@ function addStem(
     );
 }
 
-interface DriftSpec extends RoundedDriftSpec {
+interface DriftSpec {
     x: number;
     z: number;
     yaw: number;
+    length: number;
+    width: number;
+    height: number;
+    asymmetry?: number;
+    isBank?: boolean;
+    bankSide?: number;
+    topWidthRatio?: number;
+    topLengthRatio?: number;
+    twoTier?: boolean;
     isDirty?: boolean;
     stems?: number;
+}
+
+function addCurvedDrift(
+    builder: ReturnType<typeof createQuadBuilder>,
+    surface: SurfaceField,
+    spec: DriftSpec
+): void {
+    const {
+        x: cx,
+        z: cz,
+        yaw,
+        length,
+        width,
+        height,
+        asymmetry = 0,
+        isBank = false,
+        bankSide = 1
+    } = spec;
+
+    const cos = Math.cos(yaw);
+    const sin = Math.sin(yaw);
+
+    // Dynamic tessellation: smooth curve along length and width
+    const segsU = length > 6 ? 8 : 6;
+    const segsV = width > 2.2 ? 5 : 4;
+
+    const halfL = length / 2;
+    const halfW = width / 2;
+    const crestV = Math.max(-0.4, Math.min(0.4, asymmetry));
+
+    const points: [number, number, number][][] = [];
+
+    for (let i = 0; i <= segsU; i++) {
+        points[i] = [];
+        const u = -1 + (2 * i) / segsU;
+        // Smooth cosine dome along length tapering to 0 at ends
+        const fu = Math.max(0, Math.cos((u * Math.PI) / 2));
+
+        for (let j = 0; j <= segsV; j++) {
+            const v = -1 + (2 * j) / segsV;
+
+            let fv = 0;
+            if (isBank) {
+                // Banked against wall or curb on bankSide:
+                // bankSide > 0: v = 1 is the wall (high), v = -1 is the open ground (low)
+                // bankSide < 0: v = -1 is the wall (high), v = 1 is the open ground (low)
+                const normV = bankSide > 0 ? (v + 1) / 2 : (1 - v) / 2;
+                fv = Math.sin(Math.max(0, Math.min(1, normV)) * (Math.PI / 2));
+            } else {
+                // Natural wind dune / lawn cushion
+                if (v <= crestV) {
+                    const t = (v - (-1)) / (crestV - (-1));
+                    fv = Math.sin(Math.max(0, Math.min(1, t)) * (Math.PI / 2));
+                } else {
+                    const t = (1 - v) / (1 - crestV);
+                    fv = Math.sin(Math.max(0, Math.min(1, t)) * (Math.PI / 2));
+                }
+                fv = Math.pow(Math.max(0, fv), 1.25);
+            }
+
+            const localX = u * halfL;
+            const localZ = v * halfW;
+
+            // Transform local point to world coordinates
+            const wx = cx + localX * cos + localZ * sin;
+            const wz = cz - localX * sin + localZ * cos;
+
+            // Authoritative ground elevation at this exact vertex
+            const groundY = surface.elevationAt(wx, wz);
+
+            // Granular snow profile height
+            const thickness = height * Math.pow(fu, 1.15) * fv;
+
+            // Lift slightly above ground to prevent coplanar z-fighting with diorama base
+            const lift = (i === 0 || i === segsU || (!isBank && (j === 0 || j === segsV)))
+                ? 0.002
+                : 0.003;
+
+            const wy = groundY + thickness + lift;
+            points[i][j] = [wx, wy, wz];
+        }
+    }
+
+    // Compute mathematically smooth surface normals across the grid
+    const normals: [number, number, number][][] = [];
+    for (let i = 0; i <= segsU; i++) {
+        normals[i] = [];
+        for (let j = 0; j <= segsV; j++) {
+            const prevU = points[Math.max(0, i - 1)][j];
+            const nextU = points[Math.min(segsU, i + 1)][j];
+            const prevV = points[i][Math.max(0, j - 1)];
+            const nextV = points[i][Math.min(segsV, j + 1)];
+
+            const du: [number, number, number] = [
+                nextU[0] - prevU[0],
+                nextU[1] - prevU[1],
+                nextU[2] - prevU[2]
+            ];
+            const dv: [number, number, number] = [
+                nextV[0] - prevV[0],
+                nextV[1] - prevV[1],
+                nextV[2] - prevV[2]
+            ];
+
+            let nx = du[1] * dv[2] - du[2] * dv[1];
+            let ny = du[2] * dv[0] - du[0] * dv[2];
+            let nz = du[0] * dv[1] - du[1] * dv[0];
+            if (ny < 0) {
+                nx = -nx;
+                ny = -ny;
+                nz = -nz;
+            }
+            const len = Math.hypot(nx, ny, nz) || 1;
+            normals[i][j] = [nx / len, ny / len, nz / len];
+        }
+    }
+
+    // Build quads with smooth corner normals
+    const tile = PATCH.TILE;
+    for (let i = 0; i < segsU; i++) {
+        for (let j = 0; j < segsV; j++) {
+            const p0 = points[i][j];
+            const p1 = points[i + 1][j];
+            const p2 = points[i + 1][j + 1];
+            const p3 = points[i][j + 1];
+
+            const n0 = normals[i][j];
+            const n1 = normals[i + 1][j];
+            const n2 = normals[i + 1][j + 1];
+            const n3 = normals[i][j + 1];
+
+            const uv0 = [p0[0] / tile, p0[2] / tile];
+            const uv1 = [p1[0] / tile, p1[2] / tile];
+            const uv2 = [p2[0] / tile, p2[2] / tile];
+            const uv3 = [p3[0] / tile, p3[2] / tile];
+
+            builder.addSmoothQuad(
+                [p0, p1, p2, p3],
+                [n0, n1, n2, n3],
+                [uv0, uv1, uv2, uv3]
+            );
+        }
+    }
+
+    // For banked drifts against obstacles, seal the back face against the curb/wall
+    if (isBank) {
+        const wallJ = bankSide > 0 ? segsV : 0;
+        const normZ = bankSide > 0 ? 1 : -1;
+        const backNormal: [number, number, number] = [-sin * normZ, 0, cos * normZ];
+        for (let i = 0; i < segsU; i++) {
+            const top0 = points[i][wallJ];
+            const top1 = points[i + 1][wallJ];
+            const base0: [number, number, number] = [top0[0], surface.elevationAt(top0[0], top0[2]) - 0.04, top0[2]];
+            const base1: [number, number, number] = [top1[0], surface.elevationAt(top1[0], top1[2]) - 0.04, top1[2]];
+
+            builder.addQuad(
+                [base0, base1, top1, top0],
+                backNormal,
+                [
+                    [base0[0] / tile, base0[1] / tile],
+                    [base1[0] / tile, base1[1] / tile],
+                    [top1[0] / tile, top1[1] / tile],
+                    [top0[0] / tile, top0[1] / tile]
+                ]
+            );
+        }
+    }
 }
 
 function addDrift(
@@ -86,52 +261,34 @@ function addDrift(
     random: () => number,
     spec: DriftSpec
 ): void {
-    const halfL = spec.length / 2;
-    const halfW = spec.width / 2;
-    const base =
-        surface.maxHeightInRect({
-            minX: spec.x - halfL,
-            maxX: spec.x + halfL,
-            minZ: spec.z - halfW,
-            maxZ: spec.z + halfW
-        }) + PATCH.LIFT;
-
-    const place = compose(placeAt(spec.x, spec.z, spec.yaw), translateY(base));
     const builder = spec.isDirty ? soil : snow;
-
-    // Build rounded volumetric snowdrift (single-tier or two-tier curved dome)
-    addRoundedDrift(
-        builder,
-        place,
-        {
-            length: spec.length,
-            width: spec.width,
-            height: spec.height,
-            topWidthRatio: spec.topWidthRatio ?? 0.32,
-            topLengthRatio: spec.topLengthRatio ?? 0.72,
-            asymmetry: spec.asymmetry ?? 0,
-            twoTier: spec.twoTier ?? (spec.height > 0.22 && spec.width > 1.2)
-        },
-        PATCH.TILE
-    );
+    addCurvedDrift(builder, surface, spec);
 
     const stemCount = spec.stems ?? 0;
-    for (let i = 0; i < stemCount; i++) {
-        const relX = (random() - 0.5) * spec.length * 0.65;
-        const relZ = (random() - 0.5) * spec.width * 0.4;
+    if (stemCount > 0) {
+        const halfL = spec.length / 2;
+        const halfW = spec.width / 2;
         const cos = Math.cos(spec.yaw);
         const sin = Math.sin(spec.yaw);
-        const sx = spec.x + relX * cos + relZ * sin;
-        const sz = spec.z - relX * sin + relZ * cos;
-        const sy = base + spec.height * 0.52;
-        addStem(
-            stems,
-            sx,
-            sy,
-            sz,
-            (random() - 0.5) * PATCH.STEM.TILT,
-            (random() - 0.5) * PATCH.STEM.TILT
-        );
+        for (let i = 0; i < stemCount; i++) {
+            const relU = (random() - 0.5) * 1.3;
+            const relV = (random() - 0.5) * 0.8;
+            const localX = relU * halfL;
+            const localZ = relV * halfW;
+            const sx = spec.x + localX * cos + localZ * sin;
+            const sz = spec.z - localX * sin + localZ * cos;
+            const sGround = surface.elevationAt(sx, sz);
+            const sThick = spec.height * Math.max(0, Math.cos((relU * Math.PI) / 2)) * Math.max(0, Math.cos((relV * Math.PI) / 2));
+            const sy = sGround + Math.max(0.015, sThick * 0.45);
+            addStem(
+                stems,
+                sx,
+                sy,
+                sz,
+                (random() - 0.5) * PATCH.STEM.TILT,
+                (random() - 0.5) * PATCH.STEM.TILT
+            );
+        }
     }
 }
 
@@ -191,10 +348,9 @@ function buildRoadsideDrifts(
                 length: driftLength,
                 width: driftWidth,
                 height: driftHeight,
-                topWidthRatio: 0.36,
-                topLengthRatio: 0.76,
                 asymmetry: curb.side * 0.12,
-                twoTier: false,
+                isBank: true,
+                bankSide: -curb.side,
                 isDirty,
                 stems: stemCount
             });
@@ -253,11 +409,10 @@ function buildBuildingPlinthDrifts(
                 length: driftLength,
                 width: driftWidth,
                 height: driftHeight,
-                topWidthRatio: 0.34,
-                topLengthRatio: 0.75,
                 asymmetry: frontSide * 0.15,
-                twoTier: true,
-                isDirty: random() < PATCH.DRIFT.WALL_DIRTY_RATIO,
+                isBank: true,
+                bankSide: -frontSide,
+                isDirty: false,
                 stems: random() < 0.35 ? 1 + Math.floor(random() * 2) : 0
             });
         }
@@ -283,11 +438,10 @@ function buildBuildingPlinthDrifts(
                 length: driftLength,
                 width: driftWidth,
                 height: driftHeight,
-                topWidthRatio: 0.34,
-                topLengthRatio: 0.75,
                 asymmetry: rearSide * 0.15,
-                twoTier: true,
-                isDirty: random() < PATCH.DRIFT.WALL_DIRTY_RATIO,
+                isBank: true,
+                bankSide: -rearSide,
+                isDirty: false,
                 stems: random() < 0.25 ? 1 : 0
             });
         }
@@ -307,10 +461,9 @@ function buildBuildingPlinthDrifts(
                 length: driftLength,
                 width: driftWidth,
                 height: driftHeight,
-                topWidthRatio: 0.35,
-                topLengthRatio: 0.75,
                 asymmetry: endSign * 0.12,
-                twoTier: true,
+                isBank: true,
+                bankSide: -endSign,
                 isDirty: false,
                 stems: 1
             });
@@ -445,7 +598,7 @@ function buildTreeMounds(
             topWidthRatio: 0.38,
             topLengthRatio: 0.68,
             twoTier: false,
-            isDirty: random() < 0.14,
+            isDirty: false,
             stems: 2 + Math.floor(random() * 3)
         });
     });
@@ -515,8 +668,7 @@ function buildPropDrifts(
             ...prop,
             topWidthRatio: 0.34,
             topLengthRatio: 0.72,
-            twoTier: prop.height > 0.25,
-            isDirty: random() < 0.2
+            isDirty: false
         });
     });
 }

@@ -163,6 +163,7 @@ export function addRoundedDrift(
     const halfL = length / 2;
     const halfW = width / 2;
     const shift = width * asymmetry;
+    const baseY = -0.18;
 
     const uvs = (points: Point[]): number[][] => points.map((p) => [p[0] / tile, (p[2] + p[1]) / tile]);
     const uvXZ = (points: Point[]): number[][] => points.map((p) => [p[0] / tile, p[2] / tile]);
@@ -188,10 +189,10 @@ export function addRoundedDrift(
         const halfTopL = halfL * topLengthRatio;
         const halfTopW = halfW * topWidthRatio;
 
-        const b0: Point = [-halfL, 0, -halfW];
-        const b1: Point = [halfL, 0, -halfW];
-        const b2: Point = [halfL, 0, halfW];
-        const b3: Point = [-halfL, 0, halfW];
+        const b0: Point = [-halfL, baseY, -halfW];
+        const b1: Point = [halfL, baseY, -halfW];
+        const b2: Point = [halfL, baseY, halfW];
+        const b3: Point = [-halfL, baseY, halfW];
 
         const t0: Point = [-halfTopL, height, -halfTopW + shift];
         const t1: Point = [halfTopL, height, -halfTopW + shift];
@@ -213,10 +214,10 @@ export function addRoundedDrift(
         const halfTopL = halfL * Math.min(topLengthRatio, 0.66);
         const halfTopW = halfW * Math.min(topWidthRatio, 0.28);
 
-        const b0: Point = [-halfL, 0, -halfW];
-        const b1: Point = [halfL, 0, -halfW];
-        const b2: Point = [halfL, 0, halfW];
-        const b3: Point = [-halfL, 0, halfW];
+        const b0: Point = [-halfL, baseY, -halfW];
+        const b1: Point = [halfL, baseY, -halfW];
+        const b2: Point = [halfL, baseY, halfW];
+        const b3: Point = [-halfL, baseY, halfW];
 
         const s0: Point = [-halfShoulderL, shoulderH, -halfShoulderW + shoulderShift];
         const s1: Point = [halfShoulderL, shoulderH, -halfShoulderW + shoulderShift];

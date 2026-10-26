@@ -9,6 +9,7 @@ import type { PilotState } from '../state/pilotState.js';
 import type { InputState } from '../state/inputState.js';
 import type { CollisionQuery } from './collision.js';
 import type { MeshBasicMaterial } from 'three';
+import type { SnowTrackSystem } from '../world/snowTracks.js';
 
 interface PilotModeContext {
     viewState: ViewState;
@@ -18,6 +19,7 @@ interface PilotModeContext {
     // The courtyard outdoors, the interior world inside a stairwell.
     collision: CollisionQuery;
     boardingLampMat: MeshBasicMaterial;
+    snowTracks?: SnowTrackSystem;
 }
 
 function updateBoardingLamp(viewState: ViewState, mechState: MechState, pilotState: PilotState, boardingLampMat: MeshBasicMaterial): void {
@@ -38,7 +40,8 @@ export function updatePilotMode(dt: number, {
     pilotState,
     inputState,
     collision,
-    boardingLampMat
+    boardingLampMat,
+    snowTracks
 }: PilotModeContext): void {
     mechState.hatchOpen = Math.min(1, mechState.hatchOpen + dt * MODE_FLOW.HATCH_RATE);
     mechState.crouch = Math.min(1, mechState.crouch + dt * MODE_FLOW.HATCH_RATE);
@@ -79,8 +82,15 @@ export function updatePilotMode(dt: number, {
             }
         }
 
-        pilotState.walkCycle += dt * (inputState.keys.shift
+        const stepRate = inputState.keys.shift
             ? PILOT_CONTROL.RUN_CYCLE_RATE
-            : PILOT_CONTROL.WALK_CYCLE_RATE);
+            : PILOT_CONTROL.WALK_CYCLE_RATE;
+        const prevCycle = pilotState.walkCycle;
+        pilotState.walkCycle += dt * stepRate;
+
+        // Imprint footstep when foot plants on ground
+        if (Math.floor(prevCycle / Math.PI) !== Math.floor(pilotState.walkCycle / Math.PI)) {
+            snowTracks?.imprint(pilotState.x, pilotState.z, pilotState.yaw, false);
+        }
     }
 }

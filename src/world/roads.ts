@@ -266,9 +266,13 @@ function buildMarkings(group: Group, edges: RoadEdge[]): Mesh | null {
 
     if (builder.isEmpty()) return null;
     const mesh = builder.buildMesh(
-        makePS1Material({ color: COLORS.ROAD_MARKING }, { vertexSnap: false }),
+        makePS1Material(
+            { color: COLORS.ROAD_MARKING },
+            { vertexSnap: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, depthWrite: false }
+        ),
         'surface-markings'
     );
+    mesh.renderOrder = 1;
     group.add(mesh);
     return mesh;
 }

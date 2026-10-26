@@ -338,42 +338,69 @@ export function buildRoadDetail(
     buildSlabJoints(joints, grid, masks);
 
     if (!ruts.isEmpty()) {
-        group.add(
-            ruts.buildMesh(
-                makePS1Material({ map: textures.roadRut, color: COLORS.CURB }, { vertexSnap: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
-                'road-ruts'
-            )
+        const mesh = ruts.buildMesh(
+            makePS1Material(
+                { map: textures.roadRut, color: COLORS.CURB },
+                { vertexSnap: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, depthWrite: false }
+            ),
+            'road-ruts'
         );
+        mesh.renderOrder = 1;
+        group.add(mesh);
     }
     if (!patches.isEmpty()) {
-        group.add(
-            patches.buildMesh(
-                makePS1Material({ map: textures.winterSnow, color: COLORS.TAR_PATCH }, { vertexSnap: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
-                'road-patches'
-            )
+        const mesh = patches.buildMesh(
+            makePS1Material(
+                { map: textures.winterSnow, color: COLORS.TAR_PATCH },
+                { vertexSnap: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, depthWrite: false }
+            ),
+            'road-patches'
         );
+        mesh.renderOrder = 1;
+        group.add(mesh);
     }
     if (!cracks.isEmpty()) {
-        group.add(
-            cracks.buildMesh(makePS1Material({ color: COLORS.VOID_SOFT }, { vertexSnap: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }), 'road-cracks')
+        const mesh = cracks.buildMesh(
+            makePS1Material(
+                { color: COLORS.VOID_SOFT },
+                { vertexSnap: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, depthWrite: false }
+            ),
+            'road-cracks'
         );
+        mesh.renderOrder = 1;
+        group.add(mesh);
     }
     if (!ice.isEmpty()) {
-        group.add(
-            ice.buildMesh(makePS1Material({ map: textures.winterSnow, color: COLORS.ICE }, { vertexSnap: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }), 'road-ice')
+        const mesh = ice.buildMesh(
+            makePS1Material(
+                { map: textures.winterSnow, color: COLORS.ICE },
+                { vertexSnap: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, depthWrite: false }
+            ),
+            'road-ice'
         );
+        mesh.renderOrder = 1;
+        group.add(mesh);
     }
     if (!zebra.isEmpty()) {
-        group.add(
-            zebra.buildMesh(
-                makePS1Material({ color: COLORS.ROAD_MARKING }, { vertexSnap: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
-                'road-zebra'
-            )
+        const mesh = zebra.buildMesh(
+            makePS1Material(
+                { color: COLORS.ROAD_MARKING },
+                { vertexSnap: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, depthWrite: false }
+            ),
+            'road-zebra'
         );
+        mesh.renderOrder = 1;
+        group.add(mesh);
     }
     if (!joints.isEmpty()) {
-        group.add(
-            joints.buildMesh(makePS1Material({ color: COLORS.CONCRETE }, { vertexSnap: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }), 'pavement-joints')
+        const mesh = joints.buildMesh(
+            makePS1Material(
+                { color: COLORS.CONCRETE },
+                { vertexSnap: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, depthWrite: false }
+            ),
+            'pavement-joints'
         );
+        mesh.renderOrder = 1;
+        group.add(mesh);
     }
 }

@@ -106,7 +106,7 @@ export const COLORS = {
     // flat white. Snow keeps more albedo than the concrete around it: under a
     // night sky it is the surface that actually catches the moon.
     SNOW: 0xb0b6ba,
-    SNOW_SOIL: 0x6d7276,
+    SNOW_SOIL: 0x989ea3,
     TREE_FROST: 0x7f858a,
     TREE_WHITEWASH: 0x9aa0a0,
     FENCE_WHITEWASH: 0xa8acac,

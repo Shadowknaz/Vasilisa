@@ -123,7 +123,7 @@ function init(): void {
         surface,
         debug: debugMode
     });
-    const snowTracks = createSnowTrackSystem(dioramaGroup, surface);
+    const snowTracks = createSnowTrackSystem(dioramaGroup, surface, world.snowSim);
 
     if (debugMode) {
         mountDebugPanel(built);

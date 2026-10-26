@@ -30,6 +30,8 @@ export interface SurfaceField {
     // Highest surface touched by a footprint, plus a sampling margin. A single
     // flat overlay cannot follow the relief, so it rides above the highest sample.
     maxHeightInRect(rect: Rect): number;
+    // Authoritative exact surface elevation at a point (taking into account terrain relief and plates)
+    elevationAt(x: number, z: number): number;
 }
 
 function stencilPadRect(): Rect {
@@ -128,16 +130,16 @@ export function createSurfaceField({ layout, surfaceRects }: { layout: Layout; s
         const spanZ = rect.maxZ - rect.minZ;
         const stepsX = sampleCount(spanX);
         const stepsZ = sampleCount(spanZ);
-        let max = 0;
+        let max = Number.NEGATIVE_INFINITY;
         for (let i = 0; i < stepsX; i++) {
-            const x = rect.minX + (spanX * i) / (stepsX - 1);
+            const x = stepsX > 1 ? rect.minX + (spanX * i) / (stepsX - 1) : (rect.minX + rect.maxX) / 2;
             for (let j = 0; j < stepsZ; j++) {
-                const z = rect.minZ + (spanZ * j) / (stepsZ - 1);
+                const z = stepsZ > 1 ? rect.minZ + (spanZ * j) / (stepsZ - 1) : (rect.minZ + rect.maxZ) / 2;
                 const height = groundHeightAt(x, z);
                 if (height > max) max = height;
             }
         }
-        return max;
+        return Number.isFinite(max) ? max : 0;
     }
 
     function maxHeightInRect(rect: Rect): number {
@@ -151,5 +153,28 @@ export function createSurfaceField({ layout, surfaceRects }: { layout: Layout; s
         return height;
     }
 
-    return { groundHeightAt, maxHeightInRect };
+    function elevationAt(x: number, z: number): number {
+        const relief = groundHeightAt(x, z);
+        for (let i = 0; i < paving.length; i++) {
+            const r = paving[i];
+            if (x >= r.minX && x <= r.maxX && z >= r.minZ && z <= r.maxZ) {
+                return Math.max(relief, SURFACE.PAVING);
+            }
+        }
+        for (let i = 0; i < sidewalk.length; i++) {
+            const r = sidewalk[i];
+            if (x >= r.minX && x <= r.maxX && z >= r.minZ && z <= r.maxZ) {
+                return Math.max(relief, SURFACE.PAVING);
+            }
+        }
+        for (let i = 0; i < asphalt.length; i++) {
+            const r = asphalt[i];
+            if (x >= r.minX && x <= r.maxX && z >= r.minZ && z <= r.maxZ) {
+                return Math.max(relief, SURFACE.ASPHALT);
+            }
+        }
+        return relief;
+    }
+
+    return { groundHeightAt, maxHeightInRect, elevationAt };
 }

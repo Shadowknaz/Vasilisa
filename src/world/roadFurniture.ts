@@ -20,7 +20,7 @@ const MANHOLE = {
     HALO: { LIFT: 0.004, HEIGHT: 0.012, SEGMENTS: 10 },
     // The rim the lid sits in: slightly wider and taller than the cover, so the
     // lid still reads as a lid rather than as a dark circle of paint.
-    RIM: { LIFT: 0.006, HEIGHT: 0.018, SEGMENTS: 10 },
+    RIM: { LIFT: 0.006, HEIGHT: 0.018, SEGMENTS: 10, RADIUS: 0.43 },
     COVER: { LIFT: 0.008, SEGMENTS: 10 }
 };
 
@@ -53,7 +53,7 @@ function manholeParts(layout: Layout): { halo: MergePart[]; rim: MergePart[]; co
         });
 
         parts.halo.push(place(base + MANHOLE.HALO.LIFT + MANHOLE.HALO.HEIGHT / 2, profile.RING_RADIUS, MANHOLE.HALO.HEIGHT, MANHOLE.HALO.SEGMENTS, 0));
-        parts.rim.push(place(base + MANHOLE.RIM.LIFT + MANHOLE.RIM.HEIGHT / 2, profile.RING_RADIUS, MANHOLE.RIM.HEIGHT, MANHOLE.RIM.SEGMENTS, 0));
+        parts.rim.push(place(base + MANHOLE.RIM.LIFT + MANHOLE.RIM.HEIGHT / 2, MANHOLE.RIM.RADIUS, MANHOLE.RIM.HEIGHT, MANHOLE.RIM.SEGMENTS, 0));
         parts.cover.push(
             place(
                 haloTop + MANHOLE.COVER.LIFT + profile.COVER_HEIGHT / 2,

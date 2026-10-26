@@ -33,7 +33,7 @@ const STENCIL_PAD_PLATE = {
     Y: SURFACE.PAVING
 };
 
-function buildGround(group: THREE.Group, surface: SurfaceField): void {
+function buildGround(group: THREE.Group, surface: SurfaceField): THREE.Mesh {
     // Dense vertex grid so the Mech's spotlight & impact light strongly brighten the ground
     const geometry = new THREE.PlaneGeometry(
         DIORAMA.SIZE,
@@ -69,6 +69,7 @@ function buildGround(group: THREE.Group, surface: SurfaceField): void {
     mesh.rotation.x = FLAT_ROTATION;
     mesh.name = 'ground';
     group.add(mesh);
+    return mesh;
 }
 
 function buildPedestal(group: THREE.Group): void {
@@ -153,9 +154,10 @@ function buildStencilPad(group: THREE.Group): void {
     group.add(pad);
 }
 
-export function buildDioramaBase(group: THREE.Group, surface: SurfaceField): void {
-    buildGround(group, surface);
+export function buildDioramaBase(group: THREE.Group, surface: SurfaceField): { groundMesh: THREE.Mesh } {
+    const groundMesh = buildGround(group, surface);
     buildPedestal(group);
     buildSidePipes(group);
     buildStencilPad(group);
+    return { groundMesh };
 }
